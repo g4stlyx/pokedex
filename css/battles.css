@@ -99,3 +99,61 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; background-color: red; }
 }
+
+/* Custom Type Colors */
+.bg-purple {
+    background-color: #a461e2 !important;
+    color: white !important;
+}
+
+.bg-pink {
+    background-color: #f9c9e3 !important;
+    color: #212529 !important;
+}
+
+.bg-indigo {
+    background-color: #6f42c1 !important;
+    color: white !important;
+}
+
+.bg-brown {
+    background-color: #b5651d !important;
+    color: white !important;
+}
+
+/* Type-specific button outline colors */
+.btn-outline-purple {
+    color: #a461e2;
+    border-color: #a461e2;
+}
+.btn-outline-purple:hover {
+    color: white;
+    background-color: #a461e2;
+}
+
+.btn-outline-pink {
+    color: #e83e8c;
+    border-color: #e83e8c;
+}
+.btn-outline-pink:hover {
+    color: white;
+    background-color: #e83e8c;
+}
+
+.btn-outline-indigo {
+    color: #6f42c1;
+    border-color: #6f42c1;
+}
+.btn-outline-indigo:hover {
+    color: white;
+    background-color: #6f42c1;
+}
+
+.btn-outline-brown {
+    color: #b5651d;
+    border-color: #b5651d;
+}
+.btn-outline-brown:hover {
+    color: white;
+    background-color: #b5651d;
+}

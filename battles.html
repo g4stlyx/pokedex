@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <base href="/pokedex/"> <!-- * to deploy it on /pokedex not on / directly -->
+    <!-- * to deploy it on /pokedex not on / directly -->
+    <base href="/pokedex/"> 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pokemon Battles - g4stly Pokedex</title>
@@ -48,12 +49,18 @@
                             <div class="col-md-6 mb-3">
                                 <label for="pokemon1">Your Pokemon:</label>
                                 <input type="text" class="form-control" id="pokemon1" placeholder="Enter Pokemon name or id">
-                                <button class="btn btn-success mt-2" id="selectPokemon1">Select</button>
+                                <div class="d-flex gap-2 mt-2">
+                                    <button class="btn btn-success" id="selectPokemon1">Select</button>
+                                    <button class="btn btn-primary" id="randomPokemon1">Random</button>
+                                </div>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="pokemon2">Opponent Pokemon:</label>
                                 <input type="text" class="form-control" id="pokemon2" placeholder="Enter Pokemon name or id">
-                                <button class="btn btn-danger mt-2" id="selectPokemon2">Select</button>
+                                <div class="d-flex gap-2 mt-2">
+                                    <button class="btn btn-danger" id="selectPokemon2">Select</button>
+                                    <button class="btn btn-primary" id="randomPokemon2">Random</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -89,6 +96,9 @@
                             <div class="col-12">
                                 <h4>Moves:</h4>
                                 <div id="move-buttons" class="d-flex flex-wrap gap-2 mb-3"></div>
+                                <div class="d-flex justify-content-center mb-3">
+                                    <button id="restart-battle" class="btn btn-warning">Restart Battle</button>
+                                </div>
                                 <div class="battle-log p-3 border rounded" style="height: 200px; overflow-y: auto;">
                                     <div id="battle-log">Battle log will appear here...</div>
                                 </div>
