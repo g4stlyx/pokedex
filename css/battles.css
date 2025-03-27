@@ -18,18 +18,17 @@
 
 /* HP bar styling */
 .hp-bar {
-    height: 20px;
-    background-color: #e9ecef;
+    width: 100%;
+    height: 10px;
+    background-color: #e0e0e0;
     border-radius: 5px;
-    overflow: hidden;
     margin-bottom: 10px;
-    border: 1px solid #ced4da;
+    overflow: hidden;
 }
 
 .hp-bar-fill {
     height: 100%;
-    background-color: #6c757d;
-    transition: width 0.5s;
+    transition: width 0.3s ease-in-out;
 }
 
 .hp-bar-fill.player-hp {
@@ -156,4 +155,68 @@
 .btn-outline-brown:hover {
     color: white;
     background-color: #b5651d;
+}
+
+/* Shaking animation for when a Pokemon is hit */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+    20%, 40%, 60%, 80% { transform: translateX(10px); }
+  }
+  
+  .shake-animation {
+    animation: shake 0.5s ease-in-out;
+    animation-fill-mode: forwards;
+    position: relative;
+  }
+  
+  /* Existing attack animation can be replaced */
+  .attack-animation {
+    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    position: relative;
+  }
+
+/* Victory animation */
+@keyframes victory-pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+  50% { transform: scale(1.05); box-shadow: 0 0 20px 10px rgba(40, 167, 69, 0.7); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+}
+
+.victory-animation {
+  animation: victory-pulse 1s ease-in-out infinite;
+  z-index: 10;
+  position: relative;
+}
+
+/* Defeat animation */
+@keyframes defeat {
+  0% { opacity: 1; transform: translateY(0); }
+  20% { opacity: 1; transform: translateY(0); }
+  60% { opacity: 0.7; transform: translateY(10px); }
+  100% { opacity: 0.5; transform: translateY(20px); filter: grayscale(100%); }
+}
+
+.defeat-animation {
+  animation: defeat 1.5s ease-in-out forwards;
+}
+
+/* KO text animation */
+@keyframes ko-text {
+  0% { opacity: 0; transform: scale(0.5) rotate(-10deg); }
+  50% { opacity: 1; transform: scale(1.2) rotate(5deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+
+.ko-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 48px;
+  font-weight: bold;
+  color: #dc3545;
+  text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000;
+  z-index: 20;
+  animation: ko-text 0.8s ease-out forwards;
 }

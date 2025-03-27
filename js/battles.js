@@ -104,10 +104,14 @@ async function fetchPokemonWithMoves(nameOrId) {
 }
 
 function calculateDamage(attacker, defender, move) {
-    if (move.power === 0 || !move.power) return 5; // Increased minimum damage for moves with no power
+    let damage;
     
-    // Base damage calculation
-    let damage = ((2 * 50 / 5) + 2) * move.power * (attacker.stats.attack / defender.stats.defense) / 50 + 2;
+    if (move.power === 0 || !move.power) {
+        damage = 1; // Minimum damage for moves with no power
+    } else {
+        // Base damage calculation for moves with power
+        damage = ((2 * 50 / 5) + 2) * move.power * (attacker.stats.attack / defender.stats.defense) / 50 + 2;
+    }
     
     // Get type effectiveness based on move type and defender types
     const effectiveness = getTypeEffectiveness(move.type, defender.types);
@@ -118,6 +122,7 @@ function calculateDamage(attacker, defender, move) {
     // Apply random factor (between 0.85 and 1.0)
     damage = damage * (0.85 + Math.random() * 0.15);
     
+    // Always return the same object structure regardless of move power
     return {
         damage: Math.max(1, Math.floor(damage)), // Ensure at least 1 damage is done
         effectivenessMessage: effectiveness.message,
@@ -136,10 +141,24 @@ function useMove(moveName) {
     opponentPokemon.currentHP = Math.max(0, opponentPokemon.currentHP - damage);
     console.log(`Damage dealt: ${damage}, Opponent HP: ${opponentPokemon.currentHP}/${opponentPokemon.maxHP}`);
     
-    // Add attack animation
-    const opponentElement = opponentPokemonContainer.querySelector('.pokemon-card');
-    opponentElement.classList.add('attack-animation');
-    setTimeout(() => opponentElement.classList.remove('attack-animation'), 500);
+    // Re-render opponent Pokemon with updated HP
+    renderPokemon(opponentPokemon, opponentPokemonContainer, 'opponent');
+    
+    // Apply shake animation with a small delay to ensure the element is in the DOM
+    setTimeout(() => {
+        const opponentElement = opponentPokemonContainer.querySelector('.pokemon-card');
+        if (opponentElement) {
+            // Force a reflow before adding the animation class
+            void opponentElement.offsetWidth;
+            
+            opponentElement.classList.add('shake-animation');
+            
+            // Remove the animation class after it completes
+            setTimeout(() => {
+                opponentElement.classList.remove('shake-animation');
+            }, 500);
+        }
+    }, 50);
     
     // Add effectiveness message if applicable
     const effectivenessMsg = damageResult.effectivenessMessage ? 
@@ -159,6 +178,25 @@ function useMove(moveName) {
     
     // Check if battle is over
     if (opponentPokemon.currentHP <= 0) {
+        // Add victory animation to player Pokémon
+        const playerElement = playerPokemonContainer.querySelector('.pokemon-card');
+        if (playerElement) {
+            playerElement.classList.add('victory-animation');
+        }
+        
+        // Add defeat animation and KO text to opponent Pokémon
+        const opponentElement = opponentPokemonContainer.querySelector('.pokemon-card');
+        if (opponentElement) {
+            opponentElement.classList.add('defeat-animation');
+            
+            // Add KO text
+            const koElement = document.createElement('div');
+            koElement.className = 'ko-text';
+            koElement.textContent = 'KO!';
+            opponentElement.appendChild(koElement);
+        }
+        
+        // Update battle log
         battleLog.innerHTML = `<p class="battle-result"><span class="text-success fw-bold">💥 ${capitalizeFirstLetter(playerPokemon.name)} wins! 🏆</span></p>` + battleLog.innerHTML;
         disableMoveButtons();
         return;
@@ -169,6 +207,7 @@ function useMove(moveName) {
     }, 1000);
 }
 
+// Similarly update the opponentTurn function
 function opponentTurn() {
     // Choose a random move for the opponent
     const randomMove = opponentPokemon.moves[Math.floor(Math.random() * opponentPokemon.moves.length)];
@@ -182,10 +221,24 @@ function opponentTurn() {
     playerPokemon.currentHP = Math.max(0, playerPokemon.currentHP - damage);
     console.log(`Opponent damage dealt: ${damage}, Player HP: ${playerPokemon.currentHP}/${playerPokemon.maxHP}`);
     
-    // Add attack animation
-    const playerElement = playerPokemonContainer.querySelector('.pokemon-card');
-    playerElement.classList.add('attack-animation');
-    setTimeout(() => playerElement.classList.remove('attack-animation'), 500);
+    // Re-render player Pokemon with updated HP
+    renderPokemon(playerPokemon, playerPokemonContainer, 'player');
+    
+    // Apply shake animation with a small delay to ensure the element is in the DOM
+    setTimeout(() => {
+        const playerElement = playerPokemonContainer.querySelector('.pokemon-card');
+        if (playerElement) {
+            // Force a reflow before adding the animation class
+            void playerElement.offsetWidth;
+            
+            playerElement.classList.add('shake-animation');
+            
+            // Remove the animation class after it completes
+            setTimeout(() => {
+                playerElement.classList.remove('shake-animation');
+            }, 500);
+        }
+    }, 50);
     
     // Add effectiveness message if applicable
     const effectivenessMsg = damageResult.effectivenessMessage ? 
@@ -205,6 +258,25 @@ function opponentTurn() {
     
     // Check if battle is over
     if (playerPokemon.currentHP <= 0) {
+        // Add victory animation to opponent Pokémon
+        const opponentElement = opponentPokemonContainer.querySelector('.pokemon-card');
+        if (opponentElement) {
+            opponentElement.classList.add('victory-animation');
+        }
+        
+        // Add defeat animation and KO text to player Pokémon
+        const playerElement = playerPokemonContainer.querySelector('.pokemon-card');
+        if (playerElement) {
+            playerElement.classList.add('defeat-animation');
+            
+            // Add KO text
+            const koElement = document.createElement('div');
+            koElement.className = 'ko-text';
+            koElement.textContent = 'KO!';
+            playerElement.appendChild(koElement);
+        }
+        
+        // Update battle log
         battleLog.innerHTML = `<p class="battle-result"><span class="text-danger fw-bold">💥 ${capitalizeFirstLetter(opponentPokemon.name)} wins! 🏆</span></p>` + battleLog.innerHTML;
         disableMoveButtons();
     }
@@ -580,6 +652,22 @@ function restartBattle() {
     document.querySelectorAll('.move-button').forEach(button => {
         button.disabled = false;
     });
+    
+    // Remove victory/defeat animations
+    const playerElement = playerPokemonContainer.querySelector('.pokemon-card');
+    const opponentElement = opponentPokemonContainer.querySelector('.pokemon-card');
+    
+    if (playerElement) {
+        playerElement.classList.remove('victory-animation', 'defeat-animation');
+        const koText = playerElement.querySelector('.ko-text');
+        if (koText) koText.remove();
+    }
+    
+    if (opponentElement) {
+        opponentElement.classList.remove('victory-animation', 'defeat-animation');
+        const koText = opponentElement.querySelector('.ko-text');
+        if (koText) koText.remove();
+    }
     
     // Add a notification to the battle log
     battleLog.innerHTML = `<p>Battle restarted! ${capitalizeFirstLetter(playerPokemon.name)} vs ${capitalizeFirstLetter(opponentPokemon.name)}</p>` + battleLog.innerHTML;
