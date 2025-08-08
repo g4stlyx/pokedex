@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- * deploy under /pokedex/ like other pages -->
+    <base href="/pokedex/">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Typing Game</title>
+    <link rel="icon" type="image/png" href="assets/92.png">
+    <link rel="shortcut icon" type="image/png" href="assets/92.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css?v=1">
+    <link rel="stylesheet" href="css/typing.css?v=1">
+    <style>
+        /* Minimal fallback if css/typing.css fails to load */
+        .typed-chars { color: #198754; font-weight: 600; }
+        .remaining-chars { color: #6c757d; }
+    </style>
+    <meta name="description" content="Catch Pokemon by typing their names! Progress through levels as more Pokemon appear.">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-danger">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">g4stly Pokedex</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Collection</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="battles.html">Battles</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="typing.html">Typing Game</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container my-4">
+        <div class="row">
+            <div class="col-12 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <h1 class="mb-0">Typing Game</h1>
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <div class="badge bg-primary p-3 fs-6">Level: <span id="level">1</span></div>
+                    <div class="badge bg-success p-3 fs-6">Caught: <span id="caughtCount">0</span></div>
+                    <div class="badge bg-secondary p-3 fs-6">Remaining: <span id="remainingCount">0</span></div>
+                    <button id="resetGameBtn" class="btn btn-outline-danger">Reset</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game board -->
+        <div class="row mt-3">
+            <div class="col-12">
+                <div id="gameBoard" class="game-board border rounded p-3 position-relative">
+                    <div id="boardLoading" class="text-center my-5">
+                        <div class="spinner-border text-danger" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hero / input row -->
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="hero d-flex align-items-center gap-3 p-3 bg-light border rounded">
+                    <div class="hero-avatar">
+                        <div class="rounded-circle bg-danger d-flex align-items-center justify-content-center text-white" style="width:52px;height:52px;font-weight:700;">You</div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <label for="typeInput" class="form-label mb-1">Type a Pokemon's full name to catch it</label>
+                        <input id="typeInput" class="form-control form-control-lg" type="text" placeholder="e.g. pikachu, mr-mime, charizard">
+                        <div class="form-text">Tip: ignore spaces/dots/apostrophes; hyphens are optional.</div>
+                    </div>
+                    <div class="d-flex flex-column gap-2">
+                        <button id="startBtn" class="btn btn-primary">Start</button>
+                        <button id="nextLevelBtn" class="btn btn-success" disabled>Next Level</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-white text-center py-3">
+        <p>Pokemon data provided by <a href="https://pokeapi.co" class="text-white">PokeAPI</a></p>
+        <p>© 2025 g4stly Pokedex</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js?v=1"></script>
+    <script src="js/api.js?v=1"></script>
+    <script src="js/typing.js?v=2"></script>
+    
+    <!-- Accessibility small script: focus input on load -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const input = document.getElementById('typeInput');
+            if (input) setTimeout(() => input.focus(), 100);
+        });
+    </script>
+</body>
+</html>
