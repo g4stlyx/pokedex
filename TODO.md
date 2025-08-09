@@ -10,3 +10,5 @@
 
 * throw a pokeball when a pokemon's whole name is typed.
     * it should be small not to affect ui/ux in a bad way. diff. kind of pokeballs may be used.
+* collision (game over) animation and sound effect
+* catching the pokemon (typing its whole name) sound effect (animation would be the pokeball throwing) 
