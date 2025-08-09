@@ -1,4 +1,4 @@
-# pokedex + battles web app
+# pokedex + battles + typing game web app
 
 used html, css, bootstrap, and vanilla JS.
 
@@ -14,10 +14,9 @@ used html, css, bootstrap, and vanilla JS.
     * option for choosing pokemons randomly added.
     * hp*=3 to make battles longer. 
     * in damage calculation: effectiveness based on types, "random factor" to make things more interesting.
-
-# TODO:
-* all data can be fetched to a db, just to eliminate dependency of the api.
-    * since the data is fixed, it could be even stored in a json file to eliminate latency "fetching it from a database" cause.
-* ui can be better.
-* daha büyük bir şeye çevirmek istenirse map'ler eklenebilir. lav map'inde ateş pokemonu çıkar gibi.
-    * bunu yaptıktan sonra pokemon-vortex'e dönüştürmemek için bir sebep kalmıyor.
+* typing game page:
+    * vertical gameplay like a falling-words shooter; player is fixed at the bottom.
+    * pokemons spawn at the top and home towards the player; collision = game over.
+    * zty.pe-like typing: no text field, you type anywhere. first key locks to the nearest matching pokemon and your progress is shown on its label.
+    * speed scales by level; active target slows while being typed.
+    * name difficulty scales with level: early levels prefer shorter/simple names, later levels allow longer/hyphenated/punctuated names.

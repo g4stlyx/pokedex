@@ -2,8 +2,8 @@
 
 .game-board {
   /* Make the board vertical like a falling-words game */
-  height: 60vh;           /* consistent vertical play area */
-  min-height: 380px;      /* sensible minimum for small screens */
+  height: calc(80vh);     /* larger field after removing bottom row */
+  min-height: 480px;      /* larger minimum to fill available space */
   background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.9), rgba(255,255,255,0.7));
   position: relative;
   overflow: hidden;

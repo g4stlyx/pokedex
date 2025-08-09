@@ -23,6 +23,7 @@
   // Start slower and ramp up each level
   const BASE_SPEED = 30; // px/sec
   const SPEED_PER_LEVEL = 7; // px/sec per level
+  const TARGET_SLOW_FACTOR = 0.4; // speed multiplier when a mon is being typed
 
   // DOM
   const levelEl = document.getElementById('level');
@@ -36,6 +37,8 @@
 
   // Hero (fixed along bottom center)
   const hero = { x: 0, y: 0, r: HERO_SIZE / 2, el: null };
+  let currentTarget = null; // currently targeted pokemon object
+  let typedRaw = ''; // raw keystrokes for current target
 
   // Utilities
   const normalize = (s) => (s || '')
@@ -45,6 +48,38 @@
     .trim();
 
   const stripHyphen = (s) => normalize(s).replace(/-/g, '');
+
+  // Compute typed visual count for a display name when either the normalized
+  // or no-hyphen streams match the input. Returns -1 when not a prefix match.
+  function computeTypedCountForMon(mon, inputRaw) {
+    const inputNorm = normalize(inputRaw);
+    const inputNoHyphen = stripHyphen(inputRaw);
+    const target = mon.name;
+    const targetNoHyphen = mon.nameNoHyphen;
+    let useNormalized = false;
+    if (target.startsWith(inputNorm)) useNormalized = true;
+    else if (!targetNoHyphen.startsWith(inputNoHyphen)) return { matched: false, count: 0 };
+
+    const disp = mon.displayName;
+    const dispStream = normalize(disp);
+    const streamNoHyphen = dispStream.replace(/-/g, '');
+    const compareAgainst = useNormalized ? inputNorm : inputNoHyphen;
+    const targetStream = useNormalized ? dispStream : streamNoHyphen;
+    let count = 0;
+    for (let i = 0, j = 0; i < disp.length && j < compareAgainst.length; i++) {
+      const c = disp[i];
+      const cn = normalize(c);
+      const cnNo = cn.replace(/-/g, '');
+      if (useNormalized) {
+        if (cn === targetStream[j]) { count++; j++; }
+        else if (cn === '') { count++; }
+      } else {
+        if (cnNo && cnNo === targetStream[j]) { count++; j++; }
+        else if (!cnNo) { count++; }
+      }
+    }
+    return { matched: true, count };
+  }
 
   // Compute a simple difficulty score for a Pokémon name.
   // Lower is easier. Length dominates; special chars make it harder.
@@ -139,7 +174,7 @@
   function gameOver() {
     isRunning = false;
     cancelAnim();
-    inputEl.disabled = true;
+    if (inputEl) inputEl.disabled = true;
     const overlay = document.createElement('div');
     overlay.className = 'board-overlay game-over-overlay';
     overlay.innerHTML = `
@@ -159,7 +194,7 @@
   function levelCleared() {
     isRunning = false;
     cancelAnim();
-    inputEl.disabled = true;
+    if (inputEl) inputEl.disabled = true;
     nextLevelBtn.disabled = false;
     const overlay = document.createElement('div');
     overlay.className = 'board-overlay level-clear-overlay';
@@ -192,7 +227,8 @@
       const dx = hero.x - m.x;
       const dy = hero.y - m.y;
       const len = Math.hypot(dx, dy) || 1;
-      const step = speed * dt;
+      const mSpeed = (currentTarget === m ? speed * TARGET_SLOW_FACTOR : speed);
+      const step = mSpeed * dt;
       m.x += (dx / len) * step;
       m.y += (dy / len) * step;
       if (m.el) {
@@ -223,7 +259,7 @@
     if (!isRunning) return; // already paused or stopped
     isRunning = false;
     cancelAnim();
-    inputEl.disabled = true;
+    if (inputEl) inputEl.disabled = true;
     const overlay = document.createElement('div');
     overlay.className = 'board-overlay';
     overlay.innerHTML = `
@@ -242,8 +278,7 @@
   function resumeGame() {
     const overlay = boardEl.querySelector('.board-overlay');
     if (overlay) overlay.remove();
-    inputEl.disabled = false;
-    inputEl.focus();
+    if (inputEl) { inputEl.disabled = false; inputEl.focus(); }
     isRunning = true;
     lastTs = 0;
     rafId = requestAnimationFrame(loop);
@@ -328,9 +363,9 @@
       }));
 
       renderBoard();
-      inputEl.value = '';
-      inputEl.disabled = false;
-      inputEl.focus();
+      if (inputEl) { inputEl.value = ''; inputEl.disabled = true; } // no text field typing; use global key handler
+      currentTarget = null;
+      typedRaw = '';
       updateHUD();
 
       // Start animation loop
@@ -432,8 +467,7 @@
     activeMons = [];
     isRunning = false;
   cancelAnim();
-    inputEl.value = '';
-    inputEl.disabled = true;
+    if (inputEl) { inputEl.value = ''; inputEl.disabled = true; }
     clearBoard();
     updateHUD();
     nextLevelBtn.disabled = true;
@@ -443,7 +477,7 @@
   startBtn?.addEventListener('click', () => startLevel(level));
   nextLevelBtn?.addEventListener('click', () => startLevel(level + 1));
   resetBtn?.addEventListener('click', resetGame);
-  inputEl?.addEventListener('input', processInput);
+  // inputEl is hidden; typing handled at document level
 
   // ESC to pause/resume
   document.addEventListener('keydown', (e) => {
@@ -458,10 +492,78 @@
     }
   });
 
+  // Global typing handler (zty.pe-like)
+  document.addEventListener('keydown', (e) => {
+    if (!isRunning) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const key = e.key;
+    if (key.length !== 1) return; // letters, punctuation
+    const acceptChars = /[a-zA-Z\-\.\'\s]/;
+    if (!acceptChars.test(key)) return;
+
+    // If there is no current target, choose one based on the first letter
+    if (!currentTarget) {
+      const normalizedKey = normalize(key);
+      if (!normalizedKey) return; // ignore spaces/dots/apostrophes for first char
+      // Select nearest matching mon
+      let best = null;
+      let bestDist = Infinity;
+      for (const m of activeMons) {
+        if (m.caught) continue;
+        if (m.name.startsWith(normalizedKey) || m.nameNoHyphen.startsWith(normalizedKey)) {
+          const d = Math.hypot(hero.x - m.x, hero.y - m.y);
+          if (d < bestDist) { best = m; bestDist = d; }
+        }
+      }
+      if (!best) return; // no candidate for this key
+      currentTarget = best;
+      typedRaw = '';
+      // fall through to handle this key as first char for the chosen target
+    }
+
+    // Tentatively append, but validate prefix; if invalid, ignore
+    const tentative = typedRaw + key;
+    const norm = normalize(tentative);
+    const normNoHy = stripHyphen(tentative);
+    const t = currentTarget;
+    if (!(t.name.startsWith(norm) || t.nameNoHyphen.startsWith(normNoHy))) {
+      return; // wrong key for this target; ignore
+    }
+    typedRaw = tentative;
+
+    const res = computeTypedCountForMon(t, typedRaw);
+    if (res.matched) {
+      const newCount = Math.max(t.typedCount, res.count);
+      if (newCount !== t.typedCount) { t.typedCount = newCount; if (t.labelEl) updateNameLabel(t); }
+    }
+
+    // Full catch?
+    const normFull = normalize(typedRaw);
+    const normNoHyFull = stripHyphen(typedRaw);
+    if (normFull === t.name || normNoHyFull === t.nameNoHyphen) {
+      t.caught = true;
+      t.typedCount = t.displayName.length;
+      caught += 1;
+      if (t.el) {
+        t.el.classList.add('caught-pop');
+        setTimeout(() => { t.el?.remove(); }, 250);
+      }
+      // Clear current target and buffer
+      currentTarget = null;
+      typedRaw = '';
+      updateHUD();
+    }
+  });
+
   // Init
   document.addEventListener('DOMContentLoaded', () => {
     // Auto-start Level 1 for better UX
-    inputEl.disabled = true;
+    // Hide the text input and hint; we type directly on the board
+    const label = document.querySelector('label[for="typeInput"]');
+    if (label) label.style.display = 'none';
+    if (inputEl) { inputEl.style.display = 'none'; inputEl.disabled = true; }
+    const tip = inputEl?.nextElementSibling;
+    if (tip && tip.classList && tip.classList.contains('form-text')) tip.style.display = 'none';
     updateHUD();
     startLevel(1);
   });
