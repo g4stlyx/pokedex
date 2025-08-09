@@ -1,7 +1,9 @@
 /* Typing Game styles */
 
 .game-board {
-  min-height: 320px;
+  /* Make the board vertical like a falling-words game */
+  height: 60vh;           /* consistent vertical play area */
+  min-height: 380px;      /* sensible minimum for small screens */
   background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.9), rgba(255,255,255,0.7));
   position: relative;
   overflow: hidden;
@@ -21,12 +23,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 36px;
-  background: #dc3545;
-  color: #fff;
-  border-radius: 50%;
-  border: 3px solid #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.hero-entity .hero-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .pokemon-entity .sprite {

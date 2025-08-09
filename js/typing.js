@@ -1,7 +1,7 @@
 // Typing Game logic (icon sprites + collision)
 // Contract:
 // - Levels start at 1; each level spawns baseCount + (level-1) Pokemon
-// - Icons (Pokémon) spawn at edges and approach a fixed hero at the board center
+// - Icons (Pokémon) spawn at the top and home toward a hero fixed at the bottom center
 // - If a Pokémon collides with the hero, Game Over
 // - Catch a Pokémon by typing its full normalized name; label above icon shows typed vs remaining colored
 // - Names are case-insensitive and forgiving to spaces/dots/apostrophes; hyphen optional
@@ -20,8 +20,9 @@
   // Gameplay constants
   const HERO_SIZE = 64; // px
   const ENEMY_SIZE = 64; // px
-  const BASE_SPEED = 70; // px/sec
-  const SPEED_PER_LEVEL = 10; // px/sec per level
+  // Start slower and ramp up each level
+  const BASE_SPEED = 30; // px/sec
+  const SPEED_PER_LEVEL = 7; // px/sec per level
 
   // DOM
   const levelEl = document.getElementById('level');
@@ -33,7 +34,7 @@
   const startBtn = document.getElementById('startBtn');
   const resetBtn = document.getElementById('resetGameBtn');
 
-  // Hero (fixed center)
+  // Hero (fixed along bottom center)
   const hero = { x: 0, y: 0, r: HERO_SIZE / 2, el: null };
 
   // Utilities
@@ -44,6 +45,23 @@
     .trim();
 
   const stripHyphen = (s) => normalize(s).replace(/-/g, '');
+
+  // Compute a simple difficulty score for a Pokémon name.
+  // Lower is easier. Length dominates; special chars make it harder.
+  function nameDifficultyScore(name) {
+    const n = String(name || '')
+      .toLowerCase();
+    const baseLen = n.replace(/['`\.\s-]/g, '').length;
+    let score = baseLen;
+    if (/-/.test(n)) score += 2; // hyphenated names are trickier
+    if (/'|\.|\s/.test(n)) score += 1; // punctuation/spaces add a bit
+    return score; // typical range ~3..18
+  }
+
+  // Max allowed score for a given level (progressively allows harder names)
+  function difficultyMaxForLevel(currentLevel) {
+    return Math.min(6 + (currentLevel - 1) * 2, 20);
+  }
 
   function updateHUD() {
     levelEl.textContent = level;
@@ -65,29 +83,26 @@
 
     // Measure board
     boardW = boardEl.clientWidth;
-    boardH = Math.max(boardEl.clientHeight, 320);
+    boardH = Math.max(boardEl.clientHeight, 380);
 
-    // Create hero element at center
+    // Create hero element at bottom center
     hero.x = boardW / 2;
-    hero.y = boardH / 2;
+    hero.y = boardH - (HERO_SIZE / 2) - 8;
     const h = document.createElement('div');
     h.className = 'entity hero-entity';
     h.style.width = HERO_SIZE + 'px';
     h.style.height = HERO_SIZE + 'px';
     h.style.left = hero.x + 'px';
     h.style.top = hero.y + 'px';
-    h.innerHTML = '<div class="hero-icon">🎮</div>';
+    //h.innerHTML = '<div class="hero-icon">🎮</div>';
+    h.innerHTML = '<div class="hero-icon"><img src="assets/ash64x64.ico" alt="You"></div>';
     hero.el = h;
     boardEl.appendChild(h);
 
-    // Spawn enemies at edges
+    // Spawn enemies at the top with random X, falling down
     activeMons.forEach((m) => {
-      // Random edge spawn
-      const edge = Math.floor(Math.random() * 4); // 0 top, 1 right, 2 bottom, 3 left
-      if (edge === 0) { m.x = Math.random() * boardW; m.y = -ENEMY_SIZE; }
-      else if (edge === 1) { m.x = boardW + ENEMY_SIZE; m.y = Math.random() * boardH; }
-      else if (edge === 2) { m.x = Math.random() * boardW; m.y = boardH + ENEMY_SIZE; }
-      else { m.x = -ENEMY_SIZE; m.y = Math.random() * boardH; }
+      m.x = Math.max(ENEMY_SIZE, Math.min(boardW - ENEMY_SIZE, Math.random() * boardW));
+      m.y = -ENEMY_SIZE; // start just above the board
 
       const e = document.createElement('div');
       e.className = 'entity pokemon-entity';
@@ -173,7 +188,7 @@
       if (m.caught) continue;
       remainingEnemies++;
 
-      // Homing towards hero
+      // Home toward the player
       const dx = hero.x - m.x;
       const dy = hero.y - m.y;
       const len = Math.hypot(dx, dy) || 1;
@@ -185,8 +200,11 @@
         m.el.style.top = m.y + 'px';
       }
 
-      // Collision with hero
-      if (len < heroR + enemyR) {
+      // Collision with hero (overlap)
+      const dxNow = hero.x - m.x;
+      const dyNow = hero.y - m.y;
+      const distance = Math.hypot(dxNow, dyNow);
+      if (distance < heroR + enemyR) {
         gameOver();
         return;
       }
@@ -200,10 +218,41 @@
     rafId = requestAnimationFrame(loop);
   }
 
-  async function fetchRandomPokemon(count) {
+  // Pause/Resume handling
+  function pauseGame() {
+    if (!isRunning) return; // already paused or stopped
+    isRunning = false;
+    cancelAnim();
+    inputEl.disabled = true;
+    const overlay = document.createElement('div');
+    overlay.className = 'board-overlay';
+    overlay.innerHTML = `
+      <div class="overlay-card text-center">
+        <h2 class="mb-3">Paused</h2>
+        <div class="d-flex gap-2 justify-content-center">
+          <button class="btn btn-primary" id="resumeBtn">Continue</button>
+          <button class="btn btn-secondary" id="retryBtn">Retry Level</button>
+        </div>
+      </div>`;
+    boardEl.appendChild(overlay);
+    overlay.querySelector('#resumeBtn').addEventListener('click', resumeGame);
+    overlay.querySelector('#retryBtn').addEventListener('click', () => startLevel(level));
+  }
+
+  function resumeGame() {
+    const overlay = boardEl.querySelector('.board-overlay');
+    if (overlay) overlay.remove();
+    inputEl.disabled = false;
+    inputEl.focus();
+    isRunning = true;
+    lastTs = 0;
+    rafId = requestAnimationFrame(loop);
+  }
+
+  async function fetchRandomPokemon(count, forLevel) {
     // Fetch a random slice of list results, then pick random names and resolve details.
     // This avoids hitting non-existent numeric IDs and improves success rate.
-    const batchSize = Math.max(count * 2, 20); // overfetch a bit to account for failures
+    const batchSize = Math.max(count * 8, 80); // larger pool to enforce difficulty
     const maxOffset = 1200; // generous upper bound for list endpoint
     const offset = Math.max(0, Math.floor(Math.random() * Math.max(1, maxOffset - batchSize)));
 
@@ -216,12 +265,21 @@
     }
 
     // Randomly sample names from the list
-    const pool = [...listResp.results];
+    let pool = [...listResp.results];
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
     }
-    const picks = pool.slice(0, Math.min(pool.length, count * 2));
+    // Filter by difficulty threshold; fallback to easiest if not enough
+    const threshold = difficultyMaxForLevel(forLevel || 1);
+    const easyPool = pool.filter(p => nameDifficultyScore(p.name) <= threshold);
+    if (easyPool.length >= count) {
+      pool = easyPool;
+    } else {
+      // Not enough candidates: prefer globally easiest names
+      pool.sort((a, b) => nameDifficultyScore(a.name) - nameDifficultyScore(b.name));
+    }
+    const picks = pool.slice(0, Math.min(pool.length, count * 3));
 
     const settled = await Promise.allSettled(
       picks.map(p => pokeApi.getPokemonDetails(p.name))
@@ -242,11 +300,11 @@
       clearBoard();
 
       const count = baseCount + (level - 1); // linear scaling
-      let mons = await fetchRandomPokemon(count);
+      let mons = await fetchRandomPokemon(count, level);
 
       // Fallback: try another batch if we didn't get enough
       if (mons.length < count) {
-        const more = await fetchRandomPokemon(count);
+        const more = await fetchRandomPokemon(count, level);
         mons = [...mons, ...more].slice(0, count);
       }
 
@@ -386,6 +444,19 @@
   nextLevelBtn?.addEventListener('click', () => startLevel(level + 1));
   resetBtn?.addEventListener('click', resetGame);
   inputEl?.addEventListener('input', processInput);
+
+  // ESC to pause/resume
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      // If an overlay is visible (paused/gameover/levelclear), try to resume instead of pausing again
+      const overlay = boardEl.querySelector('.board-overlay');
+      if (overlay && overlay.querySelector('#goNextBtn')) {
+        // on level cleared, Esc does nothing
+        return;
+      }
+      if (isRunning) pauseGame(); else resumeGame();
+    }
+  });
 
   // Init
   document.addEventListener('DOMContentLoaded', () => {
